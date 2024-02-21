@@ -1,0 +1,24 @@
+#!/usr/bin/env ruby
+
+require_relative '../lib/github/actionizer'
+DEFAULT_CONFIG_PATH = "#{ENV['HOME']}/actionizer.yaml".freeze
+
+# We want to pull out the `--config-path` out of the args array
+args = ARGV
+config_path = nil
+args.each_with_index do |a, i|
+  if a.match(/^--config-path/)
+    parts = args.delete_at(i).split("=")
+    parts << args.delete_at(i) if parts.one?
+    config_path = parts[1]&.sub!("~/", "#{ENV['HOME']}/")
+  end
+end
+
+command = args&.first&.downcase
+sub_command = args.drop(1).join(" ")
+
+Github::Actionizer.perform(
+  command: command,
+  sub_command: sub_command,
+  config_path: config_path || DEFAULT_CONFIG_PATH
+)

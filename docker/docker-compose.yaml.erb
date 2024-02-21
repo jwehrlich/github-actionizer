@@ -1,0 +1,39 @@
+services:
+  base:
+    image: ${COMPOSE_PROJECT_NAME}/base:latest
+    platform: <%= platform || "linux/amd64" %>
+    build:
+      context: <%= docker_dir %>
+      dockerfile: Dockerfile
+      args:
+        RUNNER_VERSION: <%= runner_version || "2.313.0" %>
+    profiles:
+      - nostart
+
+<% services.each_with_index do |(service_name, service_config), index| %>
+  <%= service_name %>-actions-runner:
+    image: ${COMPOSE_PROJECT_NAME}/base:latest
+    platform: <%= platform || "linux/amd64" %>
+    restart: always
+    environment:
+      REPO: <%= service_config["repo"] %>
+      LABELS: <%= service_config["labels"] ||  service_name %>
+      ACCESS_TOKEN: ${ACCESS_TOKEN}
+      BASE_SERVICE_NAME: <%= service_config["base_service_name"] || "#{service_name}-action-runner" %>
+    deploy:
+      mode: replicated
+      replicas: <%= service_config["replicas"] || 1 %>
+      resources:
+        limits:
+          cpus: "<%= service_config["cpu_limit"] || 1.0 %>"
+          memory: <%= service_config["memory_limit"] || "256M" %>
+        reservations:
+          cpus: "<%= service_config["cpu_reservation"] || 0.25 %>"
+          memory: <%= service_config["memory_reservation"] || "128M" %>
+<% end %>
+networks:
+  default:
+    name: actionizers.dev
+
+volumes:
+  cache:
